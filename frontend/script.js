@@ -3,9 +3,52 @@ const API_URL = '/api';
 
 // Global state
 let currentSessionId = null;
+const THEME_STORAGE_KEY = 'course-assistant-theme';
 
 // DOM elements
-let chatMessages, chatInput, sendButton, totalCourses, courseTitles;
+let chatMessages, chatInput, sendButton, totalCourses, courseTitles, themeToggle;
+
+function getSavedTheme() {
+    try {
+        return localStorage.getItem(THEME_STORAGE_KEY);
+    } catch (error) {
+        return null;
+    }
+}
+
+function saveTheme(theme) {
+    try {
+        localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch (error) {
+        // Theme switching still works if storage is unavailable.
+    }
+}
+
+function updateThemeControl(theme) {
+    if (!themeToggle) return;
+
+    const isLight = theme === 'light';
+    const actionLabel = `Switch to ${isLight ? 'dark' : 'light'} theme`;
+    themeToggle.setAttribute('aria-label', actionLabel);
+    themeToggle.setAttribute('aria-pressed', String(isLight));
+    themeToggle.setAttribute('title', actionLabel);
+}
+
+function applyTheme(theme, persist = false) {
+    const nextTheme = theme === 'light' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', nextTheme);
+    updateThemeControl(nextTheme);
+
+    if (persist) saveTheme(nextTheme);
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    applyTheme(currentTheme === 'light' ? 'dark' : 'light', true);
+}
+
+// Restore the saved choice before the rest of the interface initializes.
+applyTheme(getSavedTheme());
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -15,6 +58,8 @@ document.addEventListener('DOMContentLoaded', () => {
     sendButton = document.getElementById('sendButton');
     totalCourses = document.getElementById('totalCourses');
     courseTitles = document.getElementById('courseTitles');
+    themeToggle = document.getElementById('themeToggle');
+    updateThemeControl(document.documentElement.getAttribute('data-theme'));
     
     setupEventListeners();
     createNewSession();
@@ -23,6 +68,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Event Listeners
 function setupEventListeners() {
+    themeToggle.addEventListener('click', toggleTheme);
+
     // Chat functionality
     sendButton.addEventListener('click', sendMessage);
     chatInput.addEventListener('keypress', (e) => {
