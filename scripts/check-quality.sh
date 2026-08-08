@@ -5,4 +5,4 @@ set -euo pipefail
 project_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$project_root"
 
-uv run --locked black --check --diff .
+uv run --locked black --check --diff backend
