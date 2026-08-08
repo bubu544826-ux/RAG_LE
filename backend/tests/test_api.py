@@ -3,6 +3,30 @@ from unittest.mock import MagicMock
 from fastapi.testclient import TestClient
 
 
+def test_create_session_returns_new_session(
+    client: TestClient,
+    mock_rag_system: MagicMock,
+) -> None:
+    response = client.post("/api/sessions")
+
+    assert response.status_code == 201
+    assert response.json() == {"session_id": "test-session-id"}
+    mock_rag_system.session_manager.create_session.assert_called_once_with()
+
+
+def test_delete_session_removes_server_history(
+    client: TestClient,
+    mock_rag_system: MagicMock,
+) -> None:
+    response = client.delete("/api/sessions/existing-session")
+
+    assert response.status_code == 204
+    assert response.content == b""
+    mock_rag_system.session_manager.delete_session.assert_called_once_with(
+        "existing-session"
+    )
+
+
 def test_query_creates_session_and_returns_answer(
     client: TestClient,
     mock_rag_system: MagicMock,

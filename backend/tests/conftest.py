@@ -19,6 +19,10 @@ class QueryResponse(BaseModel):
     session_id: str
 
 
+class SessionResponse(BaseModel):
+    session_id: str
+
+
 class CourseStats(BaseModel):
     total_courses: int
     course_titles: list[str]
@@ -56,6 +60,22 @@ def mock_rag_system(sample_courses: dict[str, object]) -> MagicMock:
 def test_app(mock_rag_system: MagicMock) -> FastAPI:
     """Create an API-only app so tests do not require frontend static files."""
     app = FastAPI(title="Course Materials RAG System - Test")
+
+    @app.post("/api/sessions", response_model=SessionResponse, status_code=201)
+    async def create_session() -> SessionResponse:
+        try:
+            return SessionResponse(
+                session_id=mock_rag_system.session_manager.create_session()
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    @app.delete("/api/sessions/{session_id}", status_code=204)
+    async def delete_session(session_id: str):
+        try:
+            mock_rag_system.session_manager.delete_session(session_id)
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
 
     @app.post("/api/query", response_model=QueryResponse)
     async def query_documents(request: QueryRequest) -> QueryResponse:

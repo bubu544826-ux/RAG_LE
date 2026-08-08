@@ -6,13 +6,15 @@ class AIGenerator:
     """Handles interactions with Anthropic's Claude API for generating responses"""
 
     # Static system prompt to avoid rebuilding on each call
-    SYSTEM_PROMPT = """ You are an AI assistant specialized in course materials and educational content with access to a comprehensive search tool for course information.
+    SYSTEM_PROMPT = """ You are an AI assistant specialized in course materials and educational content with access to course search and outline tools.
 
-Search Tool Usage:
-- Use the search tool **only** for questions about specific course content or detailed educational materials
+Tool Usage:
+- Use `search_course_content` **only** for questions about specific course content or detailed educational materials
+- Use `get_course_outline` for requests about a course outline, syllabus, lesson list, or course contents
+- For outline answers, include the course title, course link, and every lesson number and title exactly as returned; do not summarize, reorder, or omit lessons
 - **One search per query maximum**
 - Synthesize search results into accurate, fact-based responses
-- If search yields no results, state this clearly without offering alternatives
+- If a tool yields no results, state this clearly without offering alternatives
 
 Response Protocol:
 - **General knowledge questions**: Answer using existing knowledge without searching

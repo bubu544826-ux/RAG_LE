@@ -2,7 +2,7 @@ import warnings
 
 warnings.filterwarnings("ignore", message="resource_tracker: There appear to be.*")
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -49,6 +49,12 @@ class QueryResponse(BaseModel):
     session_id: str
 
 
+class SessionResponse(BaseModel):
+    """Response model for a newly created conversation session"""
+
+    session_id: str
+
+
 class CourseStats(BaseModel):
     """Response model for course statistics"""
 
@@ -57,6 +63,25 @@ class CourseStats(BaseModel):
 
 
 # API Endpoints
+
+
+@app.post("/api/sessions", response_model=SessionResponse, status_code=201)
+async def create_session():
+    """Create an empty conversation session"""
+    try:
+        return SessionResponse(session_id=rag_system.session_manager.create_session())
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/sessions/{session_id}", status_code=204)
+async def delete_session(session_id: str):
+    """Delete a conversation session and its history"""
+    try:
+        rag_system.session_manager.delete_session(session_id)
+        return Response(status_code=204)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/query", response_model=QueryResponse)

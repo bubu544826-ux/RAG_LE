@@ -125,6 +125,36 @@ class VectorStore:
 
         return None
 
+    def get_course_outline(self, course_title: str) -> Optional[Dict[str, Any]]:
+        """Resolve a course title and return its stored outline metadata."""
+        import json
+
+        resolved_title = self._resolve_course_name(course_title)
+        if not resolved_title:
+            return None
+
+        try:
+            results = self.course_catalog.get(ids=[resolved_title])
+            if not results or not results.get("metadatas"):
+                return None
+
+            metadata = results["metadatas"][0]
+            lessons_json = metadata.get("lessons_json")
+            if not lessons_json:
+                return None
+
+            return {
+                "title": metadata.get("title", resolved_title),
+                "course_link": metadata.get("course_link"),
+                "lessons": json.loads(lessons_json),
+            }
+        except (json.JSONDecodeError, TypeError, KeyError, IndexError) as e:
+            print(f"Error getting course outline: {e}")
+            return None
+        except Exception as e:
+            print(f"Error getting course outline: {e}")
+            return None
+
     def _build_filter(
         self, course_title: Optional[str], lesson_number: Optional[int]
     ) -> Optional[Dict]:

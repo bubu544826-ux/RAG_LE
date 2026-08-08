@@ -1,5 +1,7 @@
 from typing import Dict, Any, Optional, Protocol
 from abc import ABC, abstractmethod
+from html import escape
+
 from vector_store import VectorStore, SearchResults
 
 
@@ -107,6 +109,15 @@ class CourseSearchTool(Tool):
             source = course_title
             if lesson_num is not None:
                 source += f" - Lesson {lesson_num}"
+
+                lesson_link = self.store.get_lesson_link(course_title, lesson_num)
+                if lesson_link:
+                    source = (
+                        f'<a href="{escape(lesson_link, quote=True)}" '
+                        'target="_blank" rel="noopener noreferrer">'
+                        f"{escape(source)}</a>"
+                    )
+
             sources.append(source)
 
             formatted.append(f"{header}\n{doc}")
@@ -115,6 +126,53 @@ class CourseSearchTool(Tool):
         self.last_sources = sources
 
         return "\n\n".join(formatted)
+
+
+class CourseOutlineTool(Tool):
+    """Tool for retrieving a course's complete ordered lesson outline."""
+
+    def __init__(self, vector_store: VectorStore):
+        self.store = vector_store
+
+    def get_tool_definition(self) -> Dict[str, Any]:
+        """Return Anthropic tool definition for this tool."""
+        return {
+            "name": "get_course_outline",
+            "description": (
+                "Get a course title, link, and complete ordered lesson list using "
+                "smart course title matching"
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "course_title": {
+                        "type": "string",
+                        "description": (
+                            "Course title to find (partial matches work, e.g. "
+                            "'MCP' or 'Introduction')"
+                        ),
+                    }
+                },
+                "required": ["course_title"],
+            },
+        }
+
+    def execute(self, course_title: str) -> str:
+        """Return the resolved course metadata and every lesson in stored order."""
+        outline = self.store.get_course_outline(course_title)
+        if not outline:
+            return f"No course found matching '{course_title}'."
+
+        course_link = outline.get("course_link") or "Unavailable"
+        lines = [
+            f"Course Title: {outline['title']}",
+            f"Course Link: {course_link}",
+        ]
+        lines.extend(
+            f"Lesson {lesson['lesson_number']}: {lesson['lesson_title']}"
+            for lesson in outline["lessons"]
+        )
+        return "\n".join(lines)
 
 
 class ToolManager:
